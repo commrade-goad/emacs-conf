@@ -1,3 +1,8 @@
+;; TODO
+;; install: https://github.com/renzmann/treesit-auto
+;; use the ts version of the mode.
+;; BUILTIN way to get grammar: M-x treesit-install-language-grammar
+
 ;; ENV
 (setenv "PATH" (concat (getenv "PATH") ":/usr/bin"))
 (setq exec-path (append exec-path '("/usr/bin")))
@@ -10,7 +15,7 @@
 (setq frame-inhibit-implied-resize t)  ;; STOP automatic frame resizing
 
 ;; HTML will always use the new mhtml
-(fset 'html-mode 'mhtml-mode)
+(add-to-list 'major-mode-remap-alist '(html-mode . mhtml-mode))
 
 ;; set ansi color support on the compile command buffer
 (require 'ansi-color)
@@ -41,8 +46,6 @@
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
-(ido-mode 1)
-(ido-everywhere 1)
 (indent-tabs-mode 0)
 
 (setq make-backup-files nil) ;; ~
@@ -67,16 +70,13 @@
 ;; This is your old M-x.
 (global-set-key (kbd "C-c C-c M-x") 'execute-extended-command)
 
-;; install the theme
-(use-package naysayer-theme
+(use-package gruber-darker-theme
   :straight t
   :config
-  (load-theme 'naysayer t))
+  (load-theme 'gruber-darker t))
 
-;; (use-package gruber-darker-theme
-;;   :straight t
-;;   :config
-;;   (load-theme 'gruber-darker t))
+;; (add-to-list 'custom-theme-load-path "~/.config/emacs/fuuted")
+;; (load-theme 'fuuted t)
 
 ;; install vterm for better terminal
 (use-package vterm
@@ -85,19 +85,15 @@
   :config
   (setq vterm-max-scrollback 5000))
 
-;; install the simpc mode because the buildin mode is heavy for no reason at all
-(add-to-list 'load-path "/home/goad/.config/emacs/simpc-mode")
-;; Importing simpc-mode
+(add-to-list 'load-path "~/.config/emacs/simpc-mode")
 (require 'simpc-mode)
-;; Automatically enabling simpc-mode on files with extensions like .h, .c, .cpp, .hpp
 (add-to-list 'auto-mode-alist '("\\.[hc]\\(pp\\)?\\'" . simpc-mode))
 
-
 ;; editorconfig suppor pretty nice to have
-(use-package editorconfig
-  :ensure t
-  :config
-  (editorconfig-mode 1))
+;; (use-package editorconfig
+;;   :ensure t
+;;   :config
+;;   (editorconfig-mode 1))
 
 ;; markdown mode
 (use-package markdown-mode
@@ -105,12 +101,14 @@
   :init
   )
 
-;; LSP
-(setq c-default-style "stroustrup")
-(setq c-basic-indent 4)
-(setq c-basic-offset 4)
+(add-hook 'go-ts-mode-hook (lambda ()
+  (setq go-ts-mode-indent-offset 4)
+  (setq tab-width 4)
+  (setq indent-tabs-mode t)
+))
 
-(setq eglot-send-changes-idle-time 0.5)
+;; LSP
+(setq eglot-send-changes-idle-time 1)
 (setq eglot-ignored-server-capabilities '(:inlayHintProvider
                                           :hoverProvider
                                           :signatureHelpProvider
@@ -123,29 +121,35 @@
 
 (use-package eglot
   :straight (:type built-in)
-  ;; :config
-  ;; (add-hook 'c-mode-hook 'eglot-ensure)
+  :config
+  (add-hook 'go-ts-mode-hook #'eglot-ensure)
   ;; (add-hook 'c-ts-mode-hook 'eglot-ensure)
-  ;; (add-hook 'c++-mode-hook 'eglot-ensure)
   ;; (add-hook 'c++-ts-mode-hook 'eglot-ensure)
   )
 
-;; Autocompletion UI
-(use-package corfu
+;; the autocomplete
+(use-package cape
   :straight t
   :init
-  (global-corfu-mode)
-  :config
-  ;; Enable auto-popup
-  (setq corfu-auto t
-        corfu-auto-delay 0
-        corfu-auto-prefix 1)
+  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+  (add-to-list 'completion-at-point-functions #'cape-file)
+  (add-hook 'eglot-managed-mode-hook
+            (lambda ()
+              (setq-local completion-at-point-functions
+                          (list #'eglot-completion-at-point
+                                #'cape-dabbrev
+                                #'cape-file)))))
 
-  ;; Show documentation/tooltips
-  (corfu-popupinfo-mode))
+
+;; setting some fancy stuff here
+(fido-mode 1)
+(icomplete-mode 1)
 
 ;; for the open buffer autocompletion
 (use-package dabbrev)
+(setq dabbrev-check-other-buffers t)
+(setq dabbrev-check-all-buffers t)
+(setq dabbrev-case-fold-search nil)
 
 ;; Magit
 (use-package magit :straight t :init)
@@ -199,13 +203,17 @@
 (evil-define-key 'normal 'global (kbd "C-k") 'drag-stuff-up)
 (evil-define-key 'visual 'global (kbd "C-j") 'drag-stuff-down)
 (evil-define-key 'visual 'global (kbd "C-k") 'drag-stuff-up)
-(evil-define-key 'insert 'global (kbd "C-n") 'dabbrev-completion)
 
 ;; Highlight trailing whitespace
 (setq-default show-trailing-whitespace t)
 
 ;; split something
 (setq split-width-threshold nil)
+
+;; Temp buffer (really usefull)
+(defun create-temp-buffer ()
+  (interactive)
+  (switch-to-buffer "*temp*"))
 
 ;; Automatically clean trailing whitespace when saving files
 ;; (add-hook 'before-save-hook 'delete-trailing-whitespace)
@@ -217,7 +225,9 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(custom-safe-themes
-   '("d445c7b530713eac282ecdeea07a8fa59692c83045bf84dd112dd738c7bcad1d"
+   '("2edc6777b0076ed4d6c7197e3cbaacc738ca7d6b5538e502ebe512365bcf54e2"
+     "e27c9668d7eddf75373fa6b07475ae2d6892185f07ebed037eedf783318761d7"
+     "d445c7b530713eac282ecdeea07a8fa59692c83045bf84dd112dd738c7bcad1d"
      "5cf12a54172956d44e1e44495cea9705468489e8b569a1d1ad301c2bca8a5503"
      default))
  '(inhibit-startup-screen t)
