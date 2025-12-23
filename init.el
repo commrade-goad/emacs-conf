@@ -1,20 +1,9 @@
-;; TODO
-;; install: https://github.com/renzmann/treesit-auto
-;; use the ts version of the mode.
-;; BUILTIN way to get grammar: M-x treesit-install-language-grammar
+;; NOTE: Might install corfu but setup it so slow it didnt bother the perf
+;;       Might install multiple-cursor and disable evil-mode somewhere in the future
+;;       install: https://github.com/renzmann/treesit-auto
+;;       BUILTIN way to get grammar: M-x treesit-install-language-grammar
 
-;; ENV
-(setenv "PATH" (concat (getenv "PATH") ":/usr/bin"))
-(setq exec-path (append exec-path '("/usr/bin")))
-
-;; Set gc
-(setq gc-cons-threshold 100000000)
-
-;; issue on x11 window resize fix
-(setq frame-resize-pixelwise t)    ;; Prevent rounding issues
-(setq frame-inhibit-implied-resize t)  ;; STOP automatic frame resizing
-
-;; HTML will always use the new mhtml
+;; Major mode remap
 (add-to-list 'major-mode-remap-alist '(html-mode . mhtml-mode))
 
 ;; set ansi color support on the compile command buffer
@@ -22,9 +11,6 @@
 (defun colorize-compilation-buffer ()
   (ansi-color-apply-on-region compilation-filter-start (point-max)))
 (add-hook 'compilation-filter-hook 'colorize-compilation-buffer)
-
-;; for the whole project thing
-(require 'project)
 
 ;; Bootstrap straight.el
 (let ((bootstrap-file (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
@@ -46,7 +32,6 @@
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
-(indent-tabs-mode 0)
 
 (setq make-backup-files nil) ;; ~
 (setq auto-save-default nil) ;; #
@@ -59,27 +44,19 @@
 
 ;; Line numbers and font
 (setq display-line-numbers-type 'relative)
-(global-display-line-numbers-mode)
-(set-frame-font "IosevkaTerm Nerd Font Mono 14" nil t)
-;; (add-to-list 'default-frame-alist `(font . "Iosevka Nerd Font Mono-14"))
+(add-hook 'prog-mode-hook 'display-line-numbers-mode)
+(add-hook 'prog-mode-hook (lambda () (setq show-trailing-whitespace t)))
 
-;; Use Smex stuff
-(use-package smex)
-(global-set-key (kbd "M-x") 'smex)
-(global-set-key (kbd "M-X") 'smex-major-mode-commands)
-;; This is your old M-x.
-(global-set-key (kbd "C-c C-c M-x") 'execute-extended-command)
+(add-to-list 'default-frame-alist `(font . "IosevkaTerm Nerd Font Mono 14"))
 
 (use-package gruber-darker-theme
   :straight t
   :config
   (load-theme 'gruber-darker t))
 
-;; (add-to-list 'custom-theme-load-path "~/.config/emacs/fuuted")
-;; (load-theme 'fuuted t)
-
 ;; install vterm for better terminal
 (use-package vterm
+  :defer t
   :ensure t
   :commands vterm
   :config
@@ -97,9 +74,8 @@
 
 ;; markdown mode
 (use-package markdown-mode
-  :straight t
-  :init
-  )
+  :defer t
+  :straight t)
 
 (add-hook 'go-ts-mode-hook (lambda ()
   (setq go-ts-mode-indent-offset 4)
@@ -123,11 +99,12 @@
   :straight (:type built-in)
   :config
   (add-hook 'go-ts-mode-hook #'eglot-ensure)
-  ;; (add-hook 'c-ts-mode-hook 'eglot-ensure)
-  ;; (add-hook 'c++-ts-mode-hook 'eglot-ensure)
   )
 
 ;; the autocomplete
+(setq cape-dabbrev-min-length 3)
+(setq cape-dabbrev-limit 10)
+(setq dabbrev-other-buffers t)
 (use-package cape
   :straight t
   :init
@@ -140,38 +117,30 @@
                                 #'cape-dabbrev
                                 #'cape-file)))))
 
-
 ;; setting some fancy stuff here
-(fido-mode 1)
-(icomplete-mode 1)
+(setq ido-everywhere t)
+(setq ido-show-dot-for-dired t)
+(ido-mode 1)
 
-;; for the open buffer autocompletion
-(use-package dabbrev)
-(setq dabbrev-check-other-buffers t)
-(setq dabbrev-check-all-buffers t)
-(setq dabbrev-case-fold-search nil)
+(use-package smex
+  :defer t
+  :bind (("M-x" . smex)
+         ("M-X" . smex-major-mode-commands)
+         ("C-c C-c M-x" . execute-extended-command)))
 
 ;; Magit
-(use-package magit :straight t :init)
-
-;; Install drag-stuff package
-(use-package drag-stuff
+(use-package magit
+  :defer t
   :straight t
-  :config
-  (drag-stuff-global-mode 1))
+  :init)
 
-;; Evil mode and Evil Collection
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;  Evil mode and Evil Collection with vanilla emacs on insert mode  ;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(setq evil-disable-insert-state-bindings t)
 (setq evil-want-C-u-scroll t)
 (setq evil-symbol-word-search t)
 (setq evil-undo-system 'undo-redo)
-(setq evil-normal-state-cursor 'box
-      evil-insert-state-cursor 'box
-      evil-visual-state-cursor 'box
-      evil-replace-state-cursor 'box
-      evil-operator-state-cursor 'box
-      evil-motion-state-cursor 'box
-      evil-emacs-state-cursor 'box)
-
 
 (use-package evil
   :init
@@ -185,27 +154,33 @@
   :config
   (evil-collection-init))
 
-(setq evil-undo-system 'undo-redo)
 (setq evil-shift-width 4)
 (evil-set-leader 'normal (kbd "SPC"))
 
-(evil-define-key 'visual 'global (kbd "g c") 'comment-line)
-(evil-define-key 'normal 'global (kbd "g c") 'comment-line)
+(evil-define-key 'visual 'prog-mode-map (kbd "g c") 'comment-line)
+(evil-define-key 'normal 'prog-mode-map (kbd "g c") 'comment-line)
 (evil-define-key 'normal 'global (kbd "<leader> c C") 'compile)
 (evil-define-key 'normal 'global (kbd "<leader> c c") 'project-compile)
 (evil-define-key 'normal 'global (kbd "<leader> b s") 'list-buffers)
-(evil-define-key 'normal 'global (kbd "<leader> d l") 'duplicate-line)
 (evil-define-key 'normal 'global (kbd "<leader> f f") 'find-file)
 (evil-define-key 'normal 'global (kbd "<leader> f F") 'project-find-file)
 (evil-define-key 'normal 'global (kbd "<leader> f s") 'project-find-regexp)
 
-(evil-define-key 'normal 'global (kbd "C-j") 'drag-stuff-down)
-(evil-define-key 'normal 'global (kbd "C-k") 'drag-stuff-up)
-(evil-define-key 'visual 'global (kbd "C-j") 'drag-stuff-down)
-(evil-define-key 'visual 'global (kbd "C-k") 'drag-stuff-up)
-
-;; Highlight trailing whitespace
-(setq-default show-trailing-whitespace t)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;  Default vanilla emacs experience not bad but its f up my vim motion muscle memory  ;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; (use-package god-mode
+;;   :straight t
+;;   :config
+;;   (global-set-key (kbd "C-c g") #'god-mode-all)
+;;   (define-key god-local-mode-map "?" #'isearch-backward)
+;;   (define-key god-local-mode-map "/" #'isearch-forward)
+;;   )
+;; (global-set-key (kbd "C-n") #'backward-char)
+;; (global-set-key (kbd "C-e") #'next-line)
+;; (global-set-key (kbd "C-i") #'previous-line)
+;; (global-set-key (kbd "C-o") #'forward-char)
+;; (global-set-key (kbd "C-;") #'move-end-of-line)
 
 ;; split something
 (setq split-width-threshold nil)
@@ -215,26 +190,11 @@
   (interactive)
   (switch-to-buffer "*temp*"))
 
-;; Automatically clean trailing whitespace when saving files
-;; (add-hook 'before-save-hook 'delete-trailing-whitespace)
-
-;; Custom set variables and faces
 (custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
  '(custom-safe-themes
    '("2edc6777b0076ed4d6c7197e3cbaacc738ca7d6b5538e502ebe512365bcf54e2"
      "e27c9668d7eddf75373fa6b07475ae2d6892185f07ebed037eedf783318761d7"
      "d445c7b530713eac282ecdeea07a8fa59692c83045bf84dd112dd738c7bcad1d"
      "5cf12a54172956d44e1e44495cea9705468489e8b569a1d1ad301c2bca8a5503"
      default))
- '(inhibit-startup-screen t)
- '(package-selected-packages '(evil evil-collection)))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
+ '(inhibit-startup-screen t))
