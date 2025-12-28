@@ -1,6 +1,8 @@
-;; NOTE: Might install multiple-cursor and disable evil-mode somewhere in the future
-;;       install: https://github.com/renzmann/treesit-auto
-;;       BUILTIN way to get grammar: M-x treesit-install-language-grammar
+;; -*- lexical-binding: t; -*-
+
+;; multiple-cursor and disable evil-mode somewhere in the future
+;; install: https://github.com/renzmann/treesit-auto
+;; BUILTIN way to get grammar: M-x treesit-install-language-grammar
 
 ;; Garbage settings
 (setq gc-cons-threshold (* 1024 1024 1024)) ;; 1gb before the garbage-collect kick in 'most-positive-fixnum'
@@ -19,20 +21,17 @@
   (ansi-color-apply-on-region compilation-filter-start (point-max)))
 (add-hook 'compilation-filter-hook 'colorize-compilation-buffer)
 
-;; Bootstrap straight.el
-(let ((bootstrap-file (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
-      (bootstrap-version 5))
-  (unless (file-exists-p bootstrap-file)
-    (with-current-buffer
-        (url-retrieve-synchronously
-         "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el")
-      (goto-char (point-max))
-      (eval-print-last-sexp)))
-  (load bootstrap-file t))
+;; Setup package manager
+(require 'package)
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 
-;; Use straight.el for package management
-(setq straight-use-package-by-default t)
-(straight-use-package 'use-package)
+(package-initialize)
+
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+
+(require 'use-package)
 (setq use-package-always-ensure t)
 
 ;; Disable menu, tool, and scroll bars
@@ -57,33 +56,23 @@
 (add-to-list 'default-frame-alist `(font . "IosevkaTerm Nerd Font Mono 15"))
 
 (use-package gruber-darker-theme
-  :straight t
   :config
   (load-theme 'gruber-darker t))
 
 ;; install vterm for better terminal
+(setq vterm-max-scrollback 5000)
 (use-package vterm
   :defer t
-  :ensure t
-  :commands vterm
-  :config
-  (setq vterm-max-scrollback 5000))
+  :ensure t)
 
-(add-to-list 'load-path "~/.config/emacs/simpc-mode")
+
+(add-to-list 'load-path (expand-file-name "simpc-mode/" user-emacs-directory))
 (require 'simpc-mode)
 (add-to-list 'auto-mode-alist '("\\.[hc]\\(pp\\)?\\'" . simpc-mode))
 
-;; ;; editorconfig suppor pretty nice to have
-;; (use-package editorconfig
-;;   :defer t
-;;   :ensure t
-;;   :config
-;;   (editorconfig-mode 1))
-
 ;; markdown mode
 (use-package markdown-mode
-  :defer t
-  :straight t)
+  :defer t)
 
 (add-hook 'go-ts-mode-hook (lambda ()
   (setq go-ts-mode-indent-offset 4)
@@ -109,17 +98,16 @@
 
 (use-package eglot
   :defer t
-  :straight (:type built-in)
   :config
   (add-hook 'go-ts-mode-hook 'eglot-ensure)
   )
 
 ;; the autocomplete
-(setq cape-dabbrev-min-length 3)
-(setq cape-dabbrev-limit 10)
+(setq cape-dabbrev-min-length 2) ;; 3
+(setq cape-dabbrev-limit 5)
 (setq dabbrev-other-buffers t)
 (use-package cape
-  :straight t
+  :defer t
   :init
   (add-to-list 'completion-at-point-functions #'cape-dabbrev)
   (add-to-list 'completion-at-point-functions #'cape-file)
@@ -132,7 +120,7 @@
 
 ;; company for the autocompletion ui
 (use-package company
-  :straight t
+  :defer t
   :init
   (global-company-mode 1)
   :config
@@ -156,7 +144,6 @@
 ;; Magit
 (use-package magit
   :defer t
-  :straight t
   :init)
 
 (setq evil-disable-insert-state-bindings t)
@@ -200,10 +187,9 @@
 (setq dired-dwim-target t)
 (setq dired-kill-when-opening-new-dired-buffer t)
 (setq wdired-allow-to-change-permissions t)
-; (define-key dired-mode-map (kbd "C-x e e") 'wdired-change-to-wdired-mode)
 
 ;; (use-package nov
-;;   :straight t)
+;;   :defer t)
 
 (custom-set-variables
  '(custom-safe-themes
@@ -212,4 +198,7 @@
      "d445c7b530713eac282ecdeea07a8fa59692c83045bf84dd112dd738c7bcad1d"
      "5cf12a54172956d44e1e44495cea9705468489e8b569a1d1ad301c2bca8a5503"
      default))
- '(inhibit-startup-screen t))
+ '(inhibit-startup-screen t)
+ '(package-selected-packages
+   '(cape company evil-collection gruber-darker-theme magit markdown-mode
+          smex vterm)))
