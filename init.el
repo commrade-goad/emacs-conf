@@ -1,7 +1,14 @@
-;; NOTE: Might install corfu but setup it so slow it didnt bother the perf
-;;       Might install multiple-cursor and disable evil-mode somewhere in the future
+;; NOTE: Might install multiple-cursor and disable evil-mode somewhere in the future
 ;;       install: https://github.com/renzmann/treesit-auto
 ;;       BUILTIN way to get grammar: M-x treesit-install-language-grammar
+
+;; Garbage settings
+(setq gc-cons-threshold (* 1024 1024 1024)) ;; 1gb before the garbage-collect kick in 'most-positive-fixnum'
+(setq gc-cons-percentage 0.6)
+(run-with-idle-timer
+ 8 t
+ (lambda ()
+   (garbage-collect)))
 
 ;; Major mode remap
 (add-to-list 'major-mode-remap-alist '(html-mode . mhtml-mode))
@@ -47,7 +54,7 @@
 (add-hook 'prog-mode-hook 'display-line-numbers-mode)
 (add-hook 'prog-mode-hook (lambda () (setq show-trailing-whitespace t)))
 
-(add-to-list 'default-frame-alist `(font . "IosevkaTerm Nerd Font Mono 14"))
+(add-to-list 'default-frame-alist `(font . "IosevkaTerm Nerd Font Mono 15"))
 
 (use-package gruber-darker-theme
   :straight t
@@ -66,8 +73,9 @@
 (require 'simpc-mode)
 (add-to-list 'auto-mode-alist '("\\.[hc]\\(pp\\)?\\'" . simpc-mode))
 
-;; editorconfig suppor pretty nice to have
+;; ;; editorconfig suppor pretty nice to have
 ;; (use-package editorconfig
+;;   :defer t
 ;;   :ensure t
 ;;   :config
 ;;   (editorconfig-mode 1))
@@ -84,6 +92,10 @@
 ))
 
 ;; LSP
+(setq read-process-output-max (* 1024 1024))
+(fset #'jsonrpc--log-event #'ignore)
+(setq eglot-events-buffer-config '(:size 0 :format short))
+
 (setq eglot-send-changes-idle-time 1)
 (setq eglot-ignored-server-capabilities '(:inlayHintProvider
                                           :hoverProvider
@@ -96,9 +108,10 @@
                                           :executeCommandProvider))
 
 (use-package eglot
+  :defer t
   :straight (:type built-in)
   :config
-  (add-hook 'go-ts-mode-hook #'eglot-ensure)
+  (add-hook 'go-ts-mode-hook 'eglot-ensure)
   )
 
 ;; the autocomplete
@@ -117,6 +130,18 @@
                                 #'cape-dabbrev
                                 #'cape-file)))))
 
+;; company for the autocompletion ui
+(use-package company
+  :straight t
+  :init
+  (global-company-mode 1)
+  :config
+  (setq company-minimum-prefix-length 2 ;; 3
+        company-idle-delay 0.2
+        company-tooltip-limit 5
+        )
+  )
+
 ;; setting some fancy stuff here
 (setq ido-everywhere t)
 (setq ido-show-dot-for-dired t)
@@ -134,9 +159,6 @@
   :straight t
   :init)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;  Evil mode and Evil Collection with vanilla emacs on insert mode  ;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (setq evil-disable-insert-state-bindings t)
 (setq evil-want-C-u-scroll t)
 (setq evil-symbol-word-search t)
@@ -166,22 +188,6 @@
 (evil-define-key 'normal 'global (kbd "<leader> f F") 'project-find-file)
 (evil-define-key 'normal 'global (kbd "<leader> f s") 'project-find-regexp)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;  Default vanilla emacs experience not bad but its f up my vim motion muscle memory  ;;;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; (use-package god-mode
-;;   :straight t
-;;   :config
-;;   (global-set-key (kbd "C-c g") #'god-mode-all)
-;;   (define-key god-local-mode-map "?" #'isearch-backward)
-;;   (define-key god-local-mode-map "/" #'isearch-forward)
-;;   )
-;; (global-set-key (kbd "C-n") #'backward-char)
-;; (global-set-key (kbd "C-e") #'next-line)
-;; (global-set-key (kbd "C-i") #'previous-line)
-;; (global-set-key (kbd "C-o") #'forward-char)
-;; (global-set-key (kbd "C-;") #'move-end-of-line)
-
 ;; split something
 (setq split-width-threshold nil)
 
@@ -189,6 +195,15 @@
 (defun create-temp-buffer ()
   (interactive)
   (switch-to-buffer "*temp*"))
+
+;; some dired nice config
+(setq dired-dwim-target t)
+(setq dired-kill-when-opening-new-dired-buffer t)
+(setq wdired-allow-to-change-permissions t)
+; (define-key dired-mode-map (kbd "C-x e e") 'wdired-change-to-wdired-mode)
+
+;; (use-package nov
+;;   :straight t)
 
 (custom-set-variables
  '(custom-safe-themes
